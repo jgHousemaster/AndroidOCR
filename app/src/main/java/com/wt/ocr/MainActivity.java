@@ -48,8 +48,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     public void onClick(View view) {
         if (view.getId() == R.id.btn_camera) {
+            // 检查权限，权限通过则跳转到拍照页面
             checkSelfPermission();
-            //google分析
+            //google firebase 分析，貌似没用
             Bundle bundle = new Bundle();
             bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "main");
             bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "拍照");
@@ -97,12 +98,15 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        // 在这里处理权限请求的结果
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSIONS_REQUEST_CAMERA) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // 权限通过，跳转到拍照页面
                 Intent intent = new Intent(this, TakePhoteActivity.class);
                 startActivity(intent);
             } else {
+                // 权限拒绝，弹出提示
                 Toast.makeText(this, "请开启权限", Toast.LENGTH_SHORT).show();
             }
         }

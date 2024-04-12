@@ -68,6 +68,7 @@ public class TakePhoteActivity extends AppCompatActivity {
 
     @Override
     protected void onResume() {
+        // 旋转文字
         super.onResume();
         if (isTransverse) {
             if (!isRotated) {
@@ -166,23 +167,23 @@ public class TakePhoteActivity extends AppCompatActivity {
     /**
      * 拍照界面
      */
-    private View.OnClickListener onClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-            switch (view.getId()) {
-                case R.id.btn_close: //关闭相机
-                    finish();
-                    break;
-                case R.id.btn_shutter: //拍照
-                    takePhoto();
-                    break;
-                case R.id.btn_album: //相册
-                    Intent intent = new Intent();
-                    intent.setType("image/*");
-                    intent.setAction(Intent.ACTION_GET_CONTENT);
-                    startActivityForResult(intent, 1);
-                    break;
-            }
+    private View.OnClickListener onClickListener = view -> {
+        switch (view.getId()) {
+            case R.id.btn_close: //关闭相机
+                finish();
+                break;
+            case R.id.btn_shutter: //拍照
+                takePhoto();
+                break;
+            case R.id.btn_album: //相册
+                Intent intent = new Intent();
+                // 设置文件类型为图片（MIME 类型）
+                intent.setType("image/*");
+                // 打开相册选择界面
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                // 启动 intent 并要求返回结果，结果将在 onActivityResult() 方法中处理
+                startActivityForResult(intent, 1);
+                break;
         }
     };
 
@@ -191,6 +192,7 @@ public class TakePhoteActivity extends AppCompatActivity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // 获取图片 uri 并传递给 launchActivity 方法
         if (resultCode == RESULT_OK) {
             Uri uri = data.getData();
             Log.e("uri", uri.toString());
@@ -205,6 +207,7 @@ public class TakePhoteActivity extends AppCompatActivity {
             Toast.makeText(this, "文件已损坏", Toast.LENGTH_SHORT).show();
             return;
         }
+        // 携带图片 uri (Path) 跳转到裁剪界面 (CutOutPhotoActivity)
         Intent intent = new Intent(this, CutOutPhotoActivity.class);
         intent.putExtra("path", path);
         startActivity(intent);
