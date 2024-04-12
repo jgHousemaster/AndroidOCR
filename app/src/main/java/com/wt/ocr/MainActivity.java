@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
+
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.wt.ocr.databinding.ActivityMainBinding;
 
@@ -28,6 +29,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     static final String PERMISSION_CAMERA = Manifest.permission.CAMERA;
     static final String PERMISSION_WRITE_STORAGE = Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
+    private static final int REQUEST_CODE_MEDIA_PERMISSION = 101;
+
     private FirebaseAnalytics mFirebaseAnalytics;
 
     private ActivityMainBinding mBinding;
@@ -36,11 +39,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
-
+//        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 //        mBinding.btnCamera.setOnClickListener(this);
-
         mBinding.btnStart.setOnClickListener(this);
+
+        // 检查读取权限
+        if (!isMediaPermissionGranted()) {
+            requestMediaPermission();
+        }
 
         new Thread(new Runnable() {
             @Override
@@ -51,17 +57,22 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     public void onClick(View view) {
-        if (view.getId() == R.id.btn_camera) {
-            // 检查权限，权限通过则跳转到拍照页面
-            checkSelfPermission();
-            //google firebase 分析，貌似没用
-            Bundle bundle = new Bundle();
-            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "main");
-            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "拍照");
-            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Action");
-            mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
+        if (view.getId() == R.id.btn_start) {
+
         }
-    }
+//            checkSelfPermission();
+        }
+//        if (view.getId() == R.id.btn_camera) {
+//            // 检查权限，权限通过则跳转到拍照页面
+//            checkSelfPermission();
+//            //google firebase 分析，貌似没用
+//            Bundle bundle = new Bundle();
+//            bundle.putString(FirebaseAnalytics.Param.ITEM_ID, "main");
+//            bundle.putString(FirebaseAnalytics.Param.ITEM_NAME, "拍照");
+//            bundle.putString(FirebaseAnalytics.Param.CONTENT_TYPE, "Action");
+//            mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_CONTENT, bundle);
+//        }
+//    }
 
     /**
      * 将assets中的文件复制出
@@ -104,27 +115,63 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         // 在这里处理权限请求的结果
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSIONS_REQUEST_CAMERA) {
+        if (requestCode == REQUEST_CODE_MEDIA_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // 权限通过，跳转到拍照页面
-                Intent intent = new Intent(this, TakePhoteActivity.class);
-                startActivity(intent);
+                mBinding.tvResult.setText("权限已开启，3");
             } else {
                 // 权限拒绝，弹出提示
                 Toast.makeText(this, "请开启权限", Toast.LENGTH_SHORT).show();
+                requestMediaPermission();
             }
         }
+//        if (requestCode == PERMISSIONS_REQUEST_CAMERA) {
+//            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+////                mBinding.tvResult.setText("权限已开启，1");
+////                openAlum();
+//                // 权限通过，跳转到拍照页面
+////                Intent intent = new Intent(this, TakePhoteActivity.class);
+////                startActivity(intent);
+//            } else {
+//                // 权限拒绝，弹出提示
+//                Toast.makeText(this, "请开启权限", Toast.LENGTH_SHORT).show();
+//            }
+//        }
     }
 
     /**
      * 检查权限
      */
-    void checkSelfPermission() {
-        if (ContextCompat.checkSelfPermission(this, PERMISSION_CAMERA) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, PERMISSION_WRITE_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{PERMISSION_CAMERA, PERMISSION_WRITE_STORAGE}, PERMISSIONS_REQUEST_CAMERA);
-        } else {
-            Intent intent = new Intent(this, TakePhoteActivity.class);
-            startActivity(intent);
-        }
+//    void checkSelfPermission() {
+//        if (ContextCompat.checkSelfPermission(this, PERMISSION_CAMERA) != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, PERMISSION_WRITE_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+//            ActivityCompat.requestPermissions(this, new String[]{PERMISSION_CAMERA, PERMISSION_WRITE_STORAGE}, PERMISSIONS_REQUEST_CAMERA);
+//        } else {
+////            Intent intent = new Intent(this, TakePhoteActivity.class);
+////            startActivity(intent);
+//        }
+//    }
+
+    void openAlum() {
+        // 扫描相册，提取所有图片
+        Intent intent = new Intent();
+        // 设置文件类型为图片（MIME 类型）
+        intent.setType("image/*");
+        // 打开相册选择界面
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        // 启动 intent 并要求返回结果，结果将在 onActivityResult() 方法中处理
+        startActivityForResult(intent, 1);
     }
+
+    // Android 13 之后，不再支持 Manifest.permission.READ_EXTERNAL_STORAGE 权限，需要使用 READ_MEDIA_IMAGES 权限
+
+    // 检查读取相册权限
+    private boolean isMediaPermissionGranted() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    // 请求读取相册权限
+    private void requestMediaPermission() {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_CODE_MEDIA_PERMISSION);
+    }
+
+
 }
