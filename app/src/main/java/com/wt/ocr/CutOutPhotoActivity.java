@@ -15,6 +15,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+// 裁剪图片，保存到 cache，跳转到 ShowCropperedActivity
+
 /**
  * 裁剪
  */

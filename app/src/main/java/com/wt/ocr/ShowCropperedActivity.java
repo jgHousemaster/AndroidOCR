@@ -22,6 +22,7 @@ import android.widget.TextView;
 import com.googlecode.tesseract.android.TessBaseAPI;
 import com.wt.ocr.utils.Utils;
 
+// 在 runnable 中处理灰度的图像，提取文字
 
 /**
  * 显示截图结果
@@ -33,7 +34,8 @@ public class ShowCropperedActivity extends AppCompatActivity {
     //sd卡路径
     private static String LANGUAGE_PATH = "";
     //识别语言
-    private static final String LANGUAGE = "chi_sim";//chi_sim | eng
+//    private static final String LANGUAGE = "chi_sim";//chi_sim | eng
+    private static final String LANGUAGE = "eng";//chi_sim | eng
     private static final String TAG = "ShowCropperedActivity";
     private ImageView imageView;
     private ImageView imageView2;

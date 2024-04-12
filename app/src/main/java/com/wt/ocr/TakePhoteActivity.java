@@ -32,6 +32,8 @@ import com.wt.ocr.utils.UriUtils;
 
 import java.io.File;
 
+// 从相册中获得图片(OnClickListener往后)，传递 uri 给 showCropperedActivity
+
 /**
  * 拍照界面
  * Created by Administrator on 2016/12/8.

@@ -19,6 +19,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+// 获取权限，复制 assets 中的文件，跳转到拍照页面
+
 public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private static final int PERMISSIONS_REQUEST_CAMERA = 454;
@@ -36,7 +38,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
-        mBinding.btnCamera.setOnClickListener(this);
+//        mBinding.btnCamera.setOnClickListener(this);
+
+        mBinding.btnStart.setOnClickListener(this);
 
         new Thread(new Runnable() {
             @Override
