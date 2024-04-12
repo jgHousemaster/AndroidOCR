@@ -14,7 +14,7 @@ public class AlbumScanner {
     private static final String TAG = "AlbumScanner";
 
     // 扫描指定名称的相册并获取其中的所有图片
-    private List<String> scanAlbum(Context context, String albumName) {
+    public static List<String> scanAlbum(Context context, String albumName) {
         List<String> albumImages = new ArrayList<>();
 
         // 查询图片信息的 Uri

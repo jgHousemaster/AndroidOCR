@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 // 获取权限，复制 assets 中的文件，跳转到拍照页面
 
@@ -58,7 +59,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     public void onClick(View view) {
         if (view.getId() == R.id.btn_start) {
-
+            List<String> images = AlbumScanner.scanAlbum(this, "Sullivan");
+            String result = "";
+            int i = 0;
+            for (String image : images) {
+                result += "image " + i + " :" + image + "\n";
+                i++;
+            }
+            mBinding.tvResult.setText(result);
         }
 //            checkSelfPermission();
         }
