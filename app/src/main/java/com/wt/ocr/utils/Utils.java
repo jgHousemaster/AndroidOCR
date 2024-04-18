@@ -16,6 +16,8 @@ import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Created by Administrator on 2016/12/8.
@@ -31,5 +33,11 @@ public class Utils {
     public static final int getWidthInPx(Context context) {
         final int width = context.getResources().getDisplayMetrics().widthPixels;
         return width;
+    }
+
+    // 获取当前时间，返回字符串
+    public static String getNowTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(new Date());
     }
 }

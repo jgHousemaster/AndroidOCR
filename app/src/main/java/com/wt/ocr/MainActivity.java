@@ -3,6 +3,12 @@ package com.wt.ocr;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Paint;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -13,7 +19,9 @@ import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
 
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.googlecode.tesseract.android.TessBaseAPI;
 import com.wt.ocr.databinding.ActivityMainBinding;
+import com.wt.ocr.utils.Utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,6 +44,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private ActivityMainBinding mBinding;
 
+    // 图像识别
+    private ColorMatrix colorMatrix;
+    private TessBaseAPI baseApi = new TessBaseAPI();
+    private static String LANGUAGE_PATH = "";
+    private static final String LANGUAGE = "eng";//chi_sim | eng
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,6 +63,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             requestMediaPermission();
         }
 
+        initTess();
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -59,11 +75,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     public void onClick(View view) {
         if (view.getId() == R.id.btn_start) {
+            Toast.makeText(this, "正在读取 Sullivan 相册中的图片", Toast.LENGTH_SHORT).show();
             List<String> images = AlbumScanner.scanAlbum(this, "Sullivan");
-            String result = "";
+            String result = "读取完成，图片数量：" + images.size() + "\n\n";
+            result += "读取时间：" + Utils.getNowTime() + "\n\n";
             int i = 0;
             for (String image : images) {
-                result += "image " + i + " :" + image + "\n";
+                result += "图片 " + i + " :" + img2Text(image);
                 i++;
             }
             mBinding.tvResult.setText(result);
@@ -181,5 +199,38 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_CODE_MEDIA_PERMISSION);
     }
 
+    private String img2Text(String path) {
+
+        // 识别图片中的文字
+        Bitmap bitmap = convertGray(BitmapFactory.decodeFile(path));
+
+        baseApi.setImage(bitmap);
+        String result = baseApi.getUTF8Text();
+//        baseApi.recycle();
+
+        return path + " 的识别结果:\n" + result + "\n\n";
+    }
+
+    private Bitmap convertGray(Bitmap bitmap3) {
+        colorMatrix = new ColorMatrix();
+        colorMatrix.setSaturation(0);
+        ColorMatrixColorFilter filter = new ColorMatrixColorFilter(colorMatrix);
+
+        Paint paint = new Paint();
+        paint.setColorFilter(filter);
+        Bitmap result = Bitmap.createBitmap(bitmap3.getWidth(), bitmap3.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(result);
+
+        canvas.drawBitmap(bitmap3, 0, 0, paint);
+        return result;
+    }
+
+    private void initTess() {
+        LANGUAGE_PATH = getExternalFilesDir("") + "/";
+        //字典库
+        baseApi.init(LANGUAGE_PATH, LANGUAGE);
+        //设置设别模式
+        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
+    }
 
 }
