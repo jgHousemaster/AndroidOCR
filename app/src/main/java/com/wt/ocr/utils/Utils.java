@@ -17,6 +17,8 @@ import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 
+import com.wt.ocr.MainActivity;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -26,6 +28,8 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+
+import me.xdrop.fuzzywuzzy.FuzzySearch;
 
 /**
  * Created by Administrator on 2016/12/8.
@@ -69,5 +73,41 @@ public class Utils {
         // 将ArrayList转换为数组
         String[] linesArray = lines.toArray(new String[0]);
         return linesArray;
+    }
+
+    // 传入字符串和字符串数组，查找是否有匹配（返回最大匹配词及其匹配度）
+    public static String fuzzyFindStringShow(String[] list, String str) {
+        int result = 0;
+        String word = "";
+        int cur;
+        for (String s : list) {
+            cur = FuzzySearch.partialRatio(s, str);
+            if (cur > result) {
+                result = cur;
+                word = s;
+            }
+        }
+        return word + ": " + result;
+    }
+
+    // 传入字符串和字符串数组，查找是否有匹配（仅返回数字）
+    public static int fuzzyFindString(String[] list, String str) {
+        int result = 0;
+        int cur;
+        for (String s : list) {
+            cur = FuzzySearch.partialRatio(s, str);
+            if (cur > result) {
+                result = cur;
+            }
+        }
+        return result;
+    }
+
+    public static void showDialog(Context context, String title, String content, String confirm) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(context);
+        builder.setTitle(title);
+        builder.setMessage(content);
+        builder.setPositiveButton(confirm, null);
+        builder.show();
     }
 }

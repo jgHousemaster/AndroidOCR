@@ -27,7 +27,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
+
+import me.xdrop.fuzzywuzzy.FuzzySearch;
 
 // 获取权限，复制 assets 中的文件，跳转到拍照页面
 
@@ -50,6 +53,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private static String LANGUAGE_PATH = "";
     private static final String LANGUAGE = "eng";//chi_sim | eng
     private String[] compareList;
+    // 是否需要弹窗
+    private boolean alertNeeded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,24 +89,42 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     public void onClick(View view) {
         if (view.getId() == R.id.btn_start) {
-//            Toast.makeText(this, "正在读取 Sullivan 相册中的图片", Toast.LENGTH_SHORT).show();
-//            List<String> images = AlbumScanner.scanAlbum(this, "Sullivan");
-//            String result = "读取完成，图片数量：" + images.size() + "\n\n";
-//            result += "读取时间：" + Utils.getNowTime() + "\n\n";
-//            int i = 0;
-//            for (String image : images) {
-//                result += "图片 " + i + " :" + image + " 的识别结果:\n" + img2Text(image) + "\n\n";
-//                i++;
-//            }
-
-            String result = "";
-            for (String item : compareList) {
-                result += item + "\n";
+            Toast.makeText(this, "正在读取 Sullivan 相册中的图片", Toast.LENGTH_SHORT).show();
+            List<String> images = AlbumScanner.scanAlbum(this, "Sullivan");
+            String result = "读取完成，图片数量：" + images.size() + "\n\n";
+            result += "读取时间：" + Utils.getNowTime() + "\n\n";
+            int i = 0;
+            String curString;
+            ArrayList<String> sensitiveImages = new ArrayList<>();
+            int curSimilarity;
+            for (String image : images) {
+                curString = img2Text(image);
+                curSimilarity = Utils.fuzzyFindString(compareList, curString);
+                result += "图片 " + i + " :" + image + " 的识别结果:\n"
+                        + curString + "\n\n"
+                        + "与敏感信息词汇的最高相似度：" + Utils.fuzzyFindStringShow(compareList, img2Text(image))
+                        + "\n\n";
+                if (curSimilarity > 90) {
+                    alertNeeded = true;
+                    sensitiveImages.add(image);
+                }
+                i++;
             }
             mBinding.tvResult.setText(result);
+            if (alertNeeded) {
+                // 将sensitiveImages连接为字符串
+                StringBuilder sb = new StringBuilder();
+                for (String sensitiveImage : sensitiveImages) {
+                    sb.append(sensitiveImage).append("\n");
+                }
+
+                // 弹窗
+                Utils.showDialog(this, "注意",
+                        "检测到敏感信息，请注意。威胁图片路径：" + sb, "确定");
+            }
         }
 //            checkSelfPermission();
-        }
+    }
 //        if (view.getId() == R.id.btn_camera) {
 //            // 检查权限，权限通过则跳转到拍照页面
 //            checkSelfPermission();

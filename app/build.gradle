@@ -44,6 +44,9 @@ dependencies {
     //google分析
     implementation platform('com.google.firebase:firebase-bom:31.5.0')
     implementation 'com.google.firebase:firebase-analytics'
+
+    //Fuzzywuzzy 模糊字符串匹配
+    implementation 'me.xdrop:fuzzywuzzy:1.4.0'
 }
 apply plugin: 'com.google.gms.google-services'
 
