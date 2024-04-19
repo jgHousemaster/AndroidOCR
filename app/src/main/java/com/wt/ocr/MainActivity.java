@@ -49,6 +49,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private TessBaseAPI baseApi = new TessBaseAPI();
     private static String LANGUAGE_PATH = "";
     private static final String LANGUAGE = "eng";//chi_sim | eng
+    private String[] compareList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +66,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         initTess();
 
+        // 获取敏感信息词汇表
+        compareList = new String[0];
+        try {
+            compareList = Utils.getList(this);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -75,14 +84,19 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     public void onClick(View view) {
         if (view.getId() == R.id.btn_start) {
-            Toast.makeText(this, "正在读取 Sullivan 相册中的图片", Toast.LENGTH_SHORT).show();
-            List<String> images = AlbumScanner.scanAlbum(this, "Sullivan");
-            String result = "读取完成，图片数量：" + images.size() + "\n\n";
-            result += "读取时间：" + Utils.getNowTime() + "\n\n";
-            int i = 0;
-            for (String image : images) {
-                result += "图片 " + i + " :" + img2Text(image);
-                i++;
+//            Toast.makeText(this, "正在读取 Sullivan 相册中的图片", Toast.LENGTH_SHORT).show();
+//            List<String> images = AlbumScanner.scanAlbum(this, "Sullivan");
+//            String result = "读取完成，图片数量：" + images.size() + "\n\n";
+//            result += "读取时间：" + Utils.getNowTime() + "\n\n";
+//            int i = 0;
+//            for (String image : images) {
+//                result += "图片 " + i + " :" + image + " 的识别结果:\n" + img2Text(image) + "\n\n";
+//                i++;
+//            }
+
+            String result = "";
+            for (String item : compareList) {
+                result += item + "\n";
             }
             mBinding.tvResult.setText(result);
         }
@@ -200,15 +214,19 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private String img2Text(String path) {
-
         // 识别图片中的文字
         Bitmap bitmap = convertGray(BitmapFactory.decodeFile(path));
-
         baseApi.setImage(bitmap);
         String result = baseApi.getUTF8Text();
 //        baseApi.recycle();
 
-        return path + " 的识别结果:\n" + result + "\n\n";
+        // 去掉 result 中的空格和换行
+        result = result.replaceAll("\\s*", "");
+        // 去掉 result 中的特殊字符
+        result = result.replaceAll("[^a-zA-Z\\u4E00-\\u9FA5]", "");
+        // 将 result 中的字母转换为大写
+        result = result.toUpperCase();
+        return result;
     }
 
     private Bitmap convertGray(Bitmap bitmap3) {
