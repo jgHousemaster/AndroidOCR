@@ -13,6 +13,7 @@ import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -85,8 +86,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             throw new RuntimeException(e);
         }
 
+//        Intent intent = new Intent(this, PhotoObserverService.class);
+//        startService(intent);
         Intent intent = new Intent(this, PhotoObserverService.class);
-        startService(intent);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
+        } else {
+            startService(intent);
+        }
 
 
         new Thread(new Runnable() {

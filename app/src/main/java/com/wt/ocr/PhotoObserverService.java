@@ -29,6 +29,14 @@ public class PhotoObserverService extends Service {
             }
         };
         getContentResolver().registerContentObserver(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true, observer);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Service Running")
+                .setContentText("Photo observer service is active.")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .build();
+
+        startForeground(1, notification);
     }
 
     private void checkForNewPhoto(Uri uri) {
