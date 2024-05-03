@@ -1,6 +1,10 @@
 package com.wt.ocr;
 
+import static com.wt.ocr.App.CHANNEL_ID;
+
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -15,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
 
@@ -63,6 +68,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 //        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 //        mBinding.btnCamera.setOnClickListener(this);
         mBinding.btnStart.setOnClickListener(this);
+        mBinding.btnNotify.setOnClickListener(this);
 
         // 检查读取权限
         if (!isMediaPermissionGranted()) {
@@ -79,12 +85,26 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             throw new RuntimeException(e);
         }
 
+        Intent intent = new Intent(this, PhotoObserverService.class);
+        startService(intent);
+
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 deepFile("tessdata");
             }
         }).start();
+    }
+
+    private void showNotification() {
+        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("New Photo Added")
+                .setContentText("A new photo was added to album Sullivan.")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .build();
+        notificationManager.notify(1, notification);
     }
 
     public void onClick(View view) {
@@ -122,6 +142,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 Utils.showDialog(this, "注意",
                         "检测到敏感信息，请注意。威胁图片路径：" + sb, "确定");
             }
+        } else if (view.getId() == R.id.btn_notify) {
+            showNotification();
         }
 //            checkSelfPermission();
     }

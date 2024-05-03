@@ -7,6 +7,11 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidOCR.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidOCR.app.androidTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidOCR.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidOCR.app.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidOCR.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidOCR.app.unitTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/AndroidStudioProjects.AndroidOCR.iml" filepath="$PROJECT_DIR$/.idea/modules/AndroidStudioProjects.AndroidOCR.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/AndroidStudioProjects.AndroidOCR.app.unitTest.iml" />
     </modules>
   </component>
 </project>
