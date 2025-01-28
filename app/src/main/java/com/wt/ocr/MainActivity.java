@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
@@ -70,6 +71,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 //        mBinding.btnCamera.setOnClickListener(this);
         mBinding.btnStart.setOnClickListener(this);
         mBinding.btnNotify.setOnClickListener(this);
+        mBinding.btnTest.setOnClickListener(this);
 
         // 检查读取权限
         if (!isMediaPermissionGranted()) {
@@ -114,18 +116,24 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         notificationManager.notify(1, notification);
     }
 
+    @Override
     public void onClick(View view) {
         if (view.getId() == R.id.btn_start) {
             Toast.makeText(this, "正在读取 Sullivan 相册中的图片", Toast.LENGTH_SHORT).show();
+            // 扫描相册，提取所有图片名称
             List<String> images = AlbumScanner.scanAlbum(this, "Sullivan");
             String result = "读取完成，图片数量：" + images.size() + "\n\n";
             result += "读取时间：" + Utils.getNowTime() + "\n\n";
             int i = 0;
+
             String curString;
             ArrayList<String> sensitiveImages = new ArrayList<>();
             int curSimilarity;
+            // 遍历图片，识别文字
             for (String image : images) {
+                // OCR 识别
                 curString = img2Text(image);
+                // 与敏感信息词汇的相似度
                 curSimilarity = Utils.fuzzyFindString(compareList, curString);
                 result += "图片 " + i + " :" + image + " 的识别结果:\n"
                         + curString + "\n\n"
@@ -151,6 +159,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             }
         } else if (view.getId() == R.id.btn_notify) {
             showNotification();
+        } else if (view.getId() == R.id.btn_test) {
+            view.setBackgroundColor(Color.RED);
         }
 //            checkSelfPermission();
     }
@@ -282,6 +292,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private Bitmap convertGray(Bitmap bitmap3) {
+        // 将图片转换为灰度图
         colorMatrix = new ColorMatrix();
         colorMatrix.setSaturation(0);
         ColorMatrixColorFilter filter = new ColorMatrixColorFilter(colorMatrix);
