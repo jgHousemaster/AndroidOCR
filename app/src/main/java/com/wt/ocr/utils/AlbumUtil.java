@@ -1,4 +1,4 @@
-package com.wt.ocr;
+package com.wt.ocr.utils;
 
 import android.content.ContentResolver;
 import android.content.Context;
@@ -10,8 +10,8 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AlbumScanner {
-    private static final String TAG = "AlbumScanner";
+public class AlbumUtil {
+    private static final String TAG = "AlbumUtil";
 
     // 扫描指定名称的相册并获取其中的所有图片
     public static List<String> scanAlbum(Context context, String albumName) {
@@ -50,4 +50,4 @@ public class AlbumScanner {
 
         return albumImages;
     }
-}
+} 
