@@ -1,3 +1,5 @@
+package com.wt.ocr.data;
+
 public class ScannedImage {
     private long id;                // 数据库主键 ID
     private String filename;        // 图片文件名/路径
