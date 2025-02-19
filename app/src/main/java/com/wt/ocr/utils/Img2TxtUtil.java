@@ -20,6 +20,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import com.wt.ocr.data.DatabaseHelper;
+import com.wt.ocr.data.ScannedImage;
+import com.wt.ocr.data.ScannedImageDAO;
 
 public class Img2TxtUtil {
     private static final int REQUEST_CODE_MEDIA_PERMISSION = 101;
@@ -48,35 +53,94 @@ public class Img2TxtUtil {
         boolean alertNeeded = false;
         StringBuilder description = new StringBuilder();
         ArrayList<String> sensitiveImageURLs = new ArrayList<>();
-
+    
+        // 获取相册中所有图片
         List<String> images = AlbumUtil.scanAlbum(context, "Sullivan");
-        description.append("读取完成，图片数量：").append(images.size()).append("\n\n");
-        description.append("读取时间：").append(Utils.getNowTime()).append("\n\n");
+        // 获取未扫描的图片
+        List<String> unscannedImages = getUnscannedImages(images);
         
-        int i = 0;
-        String curString;
-        int curSimilarity;
-
-        for (String image : images) {
-            curString = img2Text(image);
-            curSimilarity = Utils.fuzzyFindString(compareList, curString);
-            description.append("图片 ").append(i).append(" :").append(image).append(" 的识别结果:\n")
-                    .append(curString).append("\n\n")
-                    .append("与敏感信息词汇的最高相似度：").append(Utils.fuzzyFindStringShow(compareList,
-                            img2Text(image)))
-                    .append("\n\n");
-            if (curSimilarity > 90) {
-                alertNeeded = true;
-                sensitiveImageURLs.add(image);
-            }
-            i++;
+        description.append("读取完成，相册总图片数量：").append(images.size()).append("\n");
+        description.append("新增未扫描图片数量：").append(unscannedImages.size()).append("\n");
+        description.append("读取时间：").append(Utils.getNowTime()).append("\n\n");
+    
+        // 创建数据库访问对象
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
+        ScannedImageDAO dao = new ScannedImageDAO(dbHelper);
+    
+        // 处理未扫描的图片
+        for (String image : unscannedImages) {
+            String curString = img2Text(image);
+            int curSimilarity = Utils.fuzzyFindString(compareList, curString);
+            String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
+            boolean isSensitive = curSimilarity > 90;
+    
+            // 创建新的记录并存入数据库
+            ScannedImage scannedImage = new ScannedImage(
+                image,
+                curString,
+                sensiWordResult,
+                isSensitive
+            );
+            dao.insert(scannedImage);
         }
-
+    
+        // 从数据库读取所有记录并生成报告
+        List<ScannedImage> allScannedImages = dao.getAll();
+        int index = 0;
+        for (ScannedImage image : allScannedImages) {
+            description.append("图片 ").append(index++).append(" :").append(image.getFilename())
+                    .append(" 的识别结果:\n")
+                    .append(image.getText()).append("\n")
+                    .append("与敏感信息词汇的最高相似度：").append(image.getSensiWord())
+                    .append("\n\n");
+    
+            if (image.isSensitive()) {
+                alertNeeded = true;
+                sensitiveImageURLs.add(image.getFilename());
+            }
+        }
+    
         result.put("alertNeeded", alertNeeded);
         result.put("description", description.toString());
         result.put("sensitiveImageURLs", sensitiveImageURLs);
-
+    
         return result;
+    }
+
+    private static List<String> getUnscannedImages(List<String> images) {
+        // 获取未扫描的图片，并更新数据库
+
+        List<String> unscannedImages = new ArrayList<>();
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
+        ScannedImageDAO dao = new ScannedImageDAO(dbHelper);
+        
+        // 获取数据库中所有记录
+        List<ScannedImage> dbImages = dao.getAll();
+        
+        // 创建一个 HashSet 来存储数据库中的文件名，提高查询效率
+        Set<String> dbFilenames = new HashSet<>();
+        for (ScannedImage dbImage : dbImages) {
+            dbFilenames.add(dbImage.getFilename());
+        }
+        
+        // 检查数据库记录是否在当前相册中存在
+        Set<String> currentImages = new HashSet<>(images);
+        for (ScannedImage dbImage : dbImages) {
+            if (!currentImages.contains(dbImage.getFilename())) {
+                // 数据库中有记录但相册中已不存在，删除该记录
+                dao.delete(dbImage.getId());
+            }
+        }
+        
+        // 检查相册中的图片是否在数据库中存在
+        for (String image : images) {
+            if (!dbFilenames.contains(image)) {
+                // 相册中有但数据库中没有的图片，添加到未扫描列表
+                unscannedImages.add(image);
+            }
+        }
+        
+        return unscannedImages;
     }
 
     private static boolean isMediaPermissionGranted() {
