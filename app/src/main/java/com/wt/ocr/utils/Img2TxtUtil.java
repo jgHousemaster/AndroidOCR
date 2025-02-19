@@ -62,7 +62,8 @@ public class Img2TxtUtil {
             curSimilarity = Utils.fuzzyFindString(compareList, curString);
             description.append("图片 ").append(i).append(" :").append(image).append(" 的识别结果:\n")
                     .append(curString).append("\n\n")
-                    .append("与敏感信息词汇的最高相似度：").append(Utils.fuzzyFindStringShow(compareList, img2Text(image)))
+                    .append("与敏感信息词汇的最高相似度：").append(Utils.fuzzyFindStringShow(compareList,
+                            img2Text(image)))
                     .append("\n\n");
             if (curSimilarity > 90) {
                 alertNeeded = true;
