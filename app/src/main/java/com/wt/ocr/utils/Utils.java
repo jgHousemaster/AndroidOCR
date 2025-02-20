@@ -55,7 +55,7 @@ public class Utils {
 
     // 读取 list.txt 文件，将字符串转换为数组并返回
     public static String[] getList(Context context) throws IOException {
-        String filePath = "list.txt"; // 文件路径
+        String filePath = "list.txt"; // 文件路径：app/src/main/assets/list.txt
         ArrayList<String> lines = new ArrayList<>(); // 用于存储文件内容的ArrayList
 
         // 安卓不允许直接读取文件，需要通过AssetManager或者 openRawResource() 方法读取

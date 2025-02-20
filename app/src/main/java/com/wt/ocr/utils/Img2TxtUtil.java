@@ -48,6 +48,17 @@ public class Img2TxtUtil {
         }
     }
 
+    public static Map<String, Object> AnalyzeImage(String path) {
+        Map<String, Object> result = new HashMap<>();
+        String curString = img2Text(path);
+        int curSimilarity = Utils.fuzzyFindString(compareList, curString);
+        String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
+        boolean isSensitive = curSimilarity > 90;
+        result.put("sensiWordResult", sensiWordResult);
+        result.put("isSensitive", isSensitive);
+        return result;
+    }
+
     public static Map<String, Object> AnalyzeAlbum() {
         Map<String, Object> result = new HashMap<>();
         boolean alertNeeded = false;
