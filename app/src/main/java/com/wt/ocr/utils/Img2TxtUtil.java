@@ -59,6 +59,60 @@ public class Img2TxtUtil {
         return result;
     }
 
+    public static Map<String, Object> AnalyzeAlbumNewPhotos() {
+        // 只返回不在数据库中图片的信息
+        Map<String, Object> result = new HashMap<>();
+        boolean alertNeeded = false;
+        ArrayList<String> sensitiveImageURLs = new ArrayList<>();
+        ArrayList<String> keywords = new ArrayList<>();
+
+        // 获取相册中所有图片
+        List<String> images = AlbumUtil.scanAlbum(context, "Sullivan");
+        // 获取未扫描的图片
+        List<String> unscannedImages = getUnscannedImages(images);
+        // 如果未扫描的图片为空，则返回
+        if (unscannedImages.isEmpty()) {
+            result.put("alertNeeded", false);
+            result.put("sensitiveImageURLs", new ArrayList<>());
+            result.put("keywords", new ArrayList<>());
+            return result;
+        }
+
+        // 创建数据库访问对象
+        DatabaseHelper dbHelper = new DatabaseHelper(context);
+        ScannedImageDAO dao = new ScannedImageDAO(dbHelper);
+    
+        // 处理未扫描的图片
+        for (String image : unscannedImages) {
+            String curString = img2Text(image);
+            int curSimilarity = Utils.fuzzyFindString(compareList, curString);
+            String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
+            boolean isSensitive = curSimilarity > 90;
+
+            // 放入结果
+            if (isSensitive) {
+                alertNeeded = true;
+                sensitiveImageURLs.add(image);
+                String keyword = sensiWordResult.split(":")[0];
+                keywords.add(keyword);
+            }
+    
+            // 创建新的记录并存入数据库
+            ScannedImage scannedImage = new ScannedImage(
+                image,
+                curString,
+                sensiWordResult,
+                isSensitive
+            );
+            dao.insert(scannedImage);
+        }
+        
+        result.put("alertNeeded", alertNeeded);
+        result.put("sensitiveImageURLs", sensitiveImageURLs);
+        result.put("keywords", keywords);
+        return result;
+    }
+
     public static Map<String, Object> AnalyzeAlbum() {
         Map<String, Object> result = new HashMap<>();
         boolean alertNeeded = false;

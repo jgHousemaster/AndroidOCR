@@ -112,5 +112,22 @@ public class ScannedImageDAO {
         cursor.close();
         return imageList;
     }
-    
+
+    /**
+     * Delete all records from the database
+     * @return true if successful, false otherwise
+     */
+    public boolean deleteAll() {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        try {
+            // Delete all rows
+            int rowsDeleted = db.delete(DatabaseHelper.TABLE_NAME, null, null);
+            return rowsDeleted >= 0; // Consider success even if no rows were deleted
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        } finally {
+            db.close();
+        }
+    }
 }

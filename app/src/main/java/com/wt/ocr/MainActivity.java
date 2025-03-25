@@ -24,12 +24,18 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.databinding.DataBindingUtil;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.googlecode.tesseract.android.TessBaseAPI;
 import com.wt.ocr.databinding.ActivityMainBinding;
 import com.wt.ocr.utils.Img2TxtUtil;
 import com.wt.ocr.utils.Utils;
+import com.wt.ocr.adapter.ScanResultAdapter;
+import com.wt.ocr.data.ScannedImage;
+import com.wt.ocr.data.ScannedImageDAO;
+import com.wt.ocr.data.DatabaseHelper;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,10 +46,20 @@ import java.util.List;
 import java.util.Map;
 
 import me.xdrop.fuzzywuzzy.FuzzySearch;
+import com.bumptech.glide.Glide;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.app.AlertDialog;
+import android.net.Uri;
+import androidx.core.content.FileProvider;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+import com.wt.ocr.fragment.HomeFragment;
+import com.wt.ocr.fragment.SettingsFragment;
 
 // 获取权限，复制 assets 中的文件，跳转到拍照页面
 
-public class MainActivity extends BaseActivity implements View.OnClickListener {
+public class MainActivity extends BaseActivity {
 
     private static final int PERMISSIONS_REQUEST_CAMERA = 454;
 
@@ -54,7 +70,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private FirebaseAnalytics mFirebaseAnalytics;
 
-    private ActivityMainBinding mBinding;
+    private ActivityMainBinding binding;
+    private ScanResultAdapter adapter;
 
     // 图像识别
     private ColorMatrix colorMatrix;
@@ -65,29 +82,69 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     // 是否需要弹窗
     private boolean alertNeeded = false;
 
+    private HomeFragment homeFragment;
+    private SettingsFragment settingsFragment;
+    private Fragment activeFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
-        mBinding.btnStart.setOnClickListener(this);
-        mBinding.btnNotify.setOnClickListener(this);
-        mBinding.btnTest.setOnClickListener(this);
-
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        
+        // 初始化 OCR
         Img2TxtUtil.init(this);
 
-        Intent intent = new Intent(this, PhotoObserverService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent);
-        } else {
-            startService(intent);
-        }
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                deepFile("tessdata");
+        // 启动服务
+        startPhotoObserverService();
+        
+        // 初始化 Fragment
+        setupFragments();
+        
+        // 设置底部导航栏
+        binding.bottomNavigation.setOnItemSelectedListener(item -> {
+            switch (item.getItemId()) {
+                case R.id.navigation_home:
+                    switchToFragment(homeFragment);
+                    return true;
+                case R.id.navigation_settings:
+                    switchToFragment(settingsFragment);
+                    return true;
             }
-        }).start();
+            return false;
+        });
+        
+        // 默认选中主页
+        binding.bottomNavigation.setSelectedItemId(R.id.navigation_home);
+    }
+    
+    private void setupFragments() {
+        homeFragment = new HomeFragment();
+        settingsFragment = new SettingsFragment();
+        
+        // 初始添加两个 Fragment，但只显示 homeFragment
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, homeFragment)
+                .add(R.id.fragment_container, settingsFragment)
+                .hide(settingsFragment)
+                .commit();
+        
+        activeFragment = homeFragment;
+    }
+    
+    private void switchToFragment(Fragment fragment) {
+        if (fragment != activeFragment) {
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.setCustomAnimations(
+                    android.R.anim.fade_in,
+                    android.R.anim.fade_out);
+            transaction.hide(activeFragment).show(fragment).commit();
+            activeFragment = fragment;
+        }
+    }
+
+    private void startPhotoObserverService() {
+        Intent serviceIntent = new Intent(this, PhotoObserverService.class);
+        startService(serviceIntent);
     }
 
     private void showNotification() {
@@ -101,72 +158,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     @Override
-    public void onClick(View view) {
-        if (view.getId() == R.id.btn_start) {
-            Toast.makeText(this, "正在读取 Sullivan 相册中的图片", Toast.LENGTH_SHORT).show();
-            Map<String, Object> analysisResult = Img2TxtUtil.AnalyzeAlbum();
-            
-            mBinding.tvResult.setText((String) analysisResult.get("description"));
-            
-            if ((Boolean) analysisResult.get("alertNeeded")) {
-                ArrayList<String> sensitiveImages = (ArrayList<String>) analysisResult.get("sensitiveImageURLs");
-                StringBuilder sb = new StringBuilder();
-                for (String sensitiveImage : sensitiveImages) {
-                    sb.append(sensitiveImage).append("\n");
-                }
-                Utils.showDialog(this, "注意",
-                        "检测到敏感信息，请注意。威胁图片路径：" + sb, "确定");
-            }
-        } else if (view.getId() == R.id.btn_notify) {
-            showNotification();
-        } else if (view.getId() == R.id.btn_test) {
-            view.setBackgroundColor(Color.RED);
-        }
-    }
-
-    /**
-     * 将assets中的文件复制出
-     *
-     * @param path
-     */
-    public void deepFile(String path) {
-        String newPath = getExternalFilesDir(null) + "/";
-        try {
-            String str[] = getAssets().list(path);
-            if (str.length > 0) {//如果是目录
-                File file = new File(newPath + path);
-                file.mkdirs();
-                for (String string : str) {
-                    path = path + "/" + string;
-                    deepFile(path);
-                    path = path.substring(0, path.lastIndexOf('/'));//回到原来的path
-                }
-            } else {//如果是文件
-                InputStream is = getAssets().open(path);
-                FileOutputStream fos = new FileOutputStream(new File(newPath + path));
-                byte[] buffer = new byte[1024];
-                while (true) {
-                    int len = is.read(buffer);
-                    if (len == -1) {
-                        break;
-                    }
-                    fos.write(buffer, 0, len);
-                }
-                is.close();
-                fos.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        // 在这里处理权限请求的结果
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_CODE_MEDIA_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mBinding.tvResult.setText("权限已开启，3");
+                Toast.makeText(this, "权限已开启", Toast.LENGTH_SHORT).show();
             } else {
                 // 权限拒绝，弹出提示
                 Toast.makeText(this, "请开启权限", Toast.LENGTH_SHORT).show();
