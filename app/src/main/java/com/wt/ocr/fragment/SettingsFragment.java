@@ -15,11 +15,13 @@ import androidx.fragment.app.Fragment;
 import com.wt.ocr.R;
 import com.wt.ocr.data.DatabaseHelper;
 import com.wt.ocr.data.ScannedImageDAO;
+import com.wt.ocr.utils.Img2TxtUtil;
 
 public class SettingsFragment extends Fragment {
 
     private TextView longTextView;
     private Button clearDatabaseButton;
+    private Button testButton;
 
     @Nullable
     @Override
@@ -29,12 +31,12 @@ public class SettingsFragment extends Fragment {
         // 获取长文本视图
         longTextView = view.findViewById(R.id.longTextView);
         
-        // 获取清空数据库按钮
+        // 获取清空数据库按钮，测试按钮
         clearDatabaseButton = view.findViewById(R.id.clearDatabaseButton);
-        
+        testButton = view.findViewById(R.id.testButton);
         // 设置按钮点击事件
         clearDatabaseButton.setOnClickListener(v -> clearDatabase());
-        
+        testButton.setOnClickListener(v -> testAnalyzeAlbum());
         return view;
     }
     
@@ -63,5 +65,9 @@ public class SettingsFragment extends Fragment {
                     "Error clearing database: " + e.getMessage(), 
                     Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void testAnalyzeAlbum() {
+        Img2TxtUtil.TestAnalyzeAlbum();
     }
 } 

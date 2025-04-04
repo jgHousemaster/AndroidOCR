@@ -9,23 +9,30 @@ import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.os.Environment;
+import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
+
 import com.wt.ocr.data.DatabaseHelper;
 import com.wt.ocr.data.ScannedImage;
 import com.wt.ocr.data.ScannedImageDAO;
-
+import com.wt.ocr.data.ResultRecord;
 public class Img2TxtUtil {
     private static final int REQUEST_CODE_MEDIA_PERMISSION = 101;
     private static ColorMatrix colorMatrix;
@@ -207,6 +214,84 @@ public class Img2TxtUtil {
         
         return unscannedImages;
     }
+
+    public static void TestAnalyzeAlbum() {
+        // 获取测试相册中的所有图片地址，之后可能需要修改
+        List<String> images = AlbumUtil.scanAlbum(context, "Sullivan");
+        List<ResultRecord> results = new ArrayList<>();
+
+        for (String imagePath : images) {
+            long start = System.currentTimeMillis();
+            String text = "";
+            String error = null;
+            boolean ocrSuccess = false;
+            String topKeyword = "";
+            double maxSimilarity = 0;
+            boolean markedSensitive = false;
+
+            try {
+                text = img2Text(imagePath); // OCR 调用
+                ocrSuccess = text != null && !text.trim().isEmpty();
+
+                if (ocrSuccess) {
+                    maxSimilarity = Utils.fuzzyFindString(compareList, text);
+                    topKeyword = Utils.fuzzyFindStringShow(compareList, text);
+                    markedSensitive = maxSimilarity > 90;
+                }
+            } catch (Exception e) {
+                error = e.getMessage();
+            }
+
+            long end = System.currentTimeMillis();
+            double timeSpent = (end - start) / 1000.0;
+
+            results.add(new ResultRecord(
+                    imagePath,
+                    ocrSuccess,
+                    text,
+                    topKeyword,
+                    maxSimilarity,
+                    markedSensitive,
+                    timeSpent,
+                    error
+            ));
+        }
+
+        writeResultsToCSV(results, context);
+    }
+
+    public static void writeResultsToCSV(List<ResultRecord> records, Context context) {
+        String filename = "app_test_result_" + System.currentTimeMillis() + ".csv";
+        File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File csvFile = new File(downloadDir, filename);
+    
+        try (FileWriter fw = new FileWriter(csvFile);
+             BufferedWriter bw = new BufferedWriter(fw)) {
+    
+            bw.write("Filename,OCR_Success,Extracted_Text,Top_Keyword,Top_Similarity,Marked_Sensitive,Time_Spent_Seconds,Error_Message");
+            bw.newLine();
+    
+            for (ResultRecord r : records) {
+                bw.write(String.format(Locale.US,
+                    "\"%s\",%b,\"%s\",\"%s\",%.2f,%b,%.2f,\"%s\"",
+                    r.filename, r.ocrSuccess,
+                    r.extractedText.replace("\"", "\"\""), // 防止引号冲突
+                    r.topKeyword,
+                    r.similarity,
+                    r.markedSensitive,
+                    r.timeSpentSeconds,
+                    r.errorMessage == null ? "" : r.errorMessage.replace("\"", "\"\"")
+                ));
+                bw.newLine();
+            }
+    
+            Toast.makeText(context, "CSV 导出成功: " + csvFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
+    
+        } catch (IOException e) {
+            Toast.makeText(context, "导出失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+    
 
     private static boolean isMediaPermissionGranted() {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_IMAGES) 
