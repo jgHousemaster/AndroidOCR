@@ -1,6 +1,9 @@
 package com.wt.ocr.fragment;
 
+import android.app.ProgressDialog;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -68,6 +71,34 @@ public class SettingsFragment extends Fragment {
     }
 
     private void testAnalyzeAlbum() {
-        Img2TxtUtil.TestAnalyzeAlbum();
+        // 创建并显示进度对话框
+        ProgressDialog progressDialog = new ProgressDialog(getContext());
+        progressDialog.setMessage("正在分析图片...");
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+        
+        // 在后台线程执行耗时操作
+        new Thread(() -> {
+            Img2TxtUtil.TestAnalyzeAlbum(new Img2TxtUtil.ProgressCallback() {
+                @Override
+                public void onProgress(int current, int total) {
+                    // 在UI线程更新进度条
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        progressDialog.setMax(total);
+                        progressDialog.setProgress(current);
+                    });
+                }
+                
+                @Override
+                public void onComplete() {
+                    // 完成后关闭进度对话框
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        progressDialog.dismiss();
+                        Toast.makeText(getContext(), "分析完成", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        }).start();
     }
 } 

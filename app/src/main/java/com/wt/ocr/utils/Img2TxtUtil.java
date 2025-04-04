@@ -215,11 +215,21 @@ public class Img2TxtUtil {
         return unscannedImages;
     }
 
-    public static void TestAnalyzeAlbum() {
-        // 获取测试相册中的所有图片地址，之后可能需要修改
+    // 添加回调接口
+    public interface ProgressCallback {
+        void onProgress(int current, int total);
+        void onComplete();
+    }
+
+    // 更新TestAnalyzeAlbum方法，添加回调参数
+    public static void TestAnalyzeAlbum(ProgressCallback callback) {
+        // 获取测试相册中的所有图片地址
         List<String> images = AlbumUtil.scanAlbum(context, "Sullivan");
         List<ResultRecord> results = new ArrayList<>();
-
+        
+        int total = images.size();
+        int current = 0;
+        
         for (String imagePath : images) {
             long start = System.currentTimeMillis();
             String text = "";
@@ -255,9 +265,23 @@ public class Img2TxtUtil {
                     timeSpent,
                     error
             ));
+            
+            current++;
+            if (callback != null) {
+                callback.onProgress(current, total);
+            }
         }
 
         writeResultsToCSV(results, context);
+        
+        if (callback != null) {
+            callback.onComplete();
+        }
+    }
+
+    // 保持原来无参数的方法，以保持向后兼容性
+    public static void TestAnalyzeAlbum() {
+        TestAnalyzeAlbum(null);
     }
 
     public static void writeResultsToCSV(List<ResultRecord> records, Context context) {
