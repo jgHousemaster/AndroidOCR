@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -331,16 +332,48 @@ public class Img2TxtUtil {
     private static void initTess() {
         LANGUAGE_PATH = context.getExternalFilesDir("") + "/";
         baseApi.init(LANGUAGE_PATH, LANGUAGE);
-        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
+        
+        // 设置页面分割模式
+        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK);
+        
+        // 设置OCR引擎模式
+        baseApi.setVariable("tessedit_ocr_engine_mode", "1");  // 1 = 神经网络LSTM模式
+        
+        // 设置白名单字符（如果你知道图片中只会出现特定字符）
+        baseApi.setVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+        
+        // 其他可能的优化参数
+        baseApi.setVariable("debug_file", "/dev/null");  // 禁用调试输出
+        baseApi.setVariable("tessdata_dir", LANGUAGE_PATH);
     }
 
     private static String img2Text(String path) {
-        Bitmap bitmap = convertGray(BitmapFactory.decodeFile(path));
-        baseApi.setImage(bitmap);
+        // 1. 加载并调整图片大小（过大或过小的图片都会影响识别）
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = 1; // 可以根据图片大小动态调整
+        Bitmap originalBitmap = BitmapFactory.decodeFile(path, options);
+        
+        // 2. 图像预处理管道
+        Bitmap processedBitmap = originalBitmap;
+        processedBitmap = convertGray(processedBitmap);     // 灰度化
+        processedBitmap = adjustContrast(processedBitmap);  // 对比度增强
+        processedBitmap = denoise(processedBitmap);         // 降噪
+        processedBitmap = binarization(processedBitmap);    // 二值化
+        
+        // 3. OCR识别
+        baseApi.setImage(processedBitmap);
         String result = baseApi.getUTF8Text();
-        result = result.replaceAll("\\s*", "");
-        result = result.replaceAll("[^a-zA-Z\\u4E00-\\u9FA5]", "");
+        
+        // 4. 释放资源
+        processedBitmap.recycle();
+        originalBitmap.recycle();
+        
+        // 5. 文本后处理
+        result = result.replaceAll("\\s+", " ");
+        result = result.trim();
+        result = result.replaceAll("[^a-zA-Z0-9 ]", "");
         result = result.toUpperCase();
+        
         return result;
     }
 
@@ -357,5 +390,90 @@ public class Img2TxtUtil {
 
         canvas.drawBitmap(bitmap3, 0, 0, paint);
         return result;
+    }
+
+    // 对比度增强
+    private static Bitmap adjustContrast(Bitmap bitmap) {
+        Bitmap result = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), bitmap.getConfig());
+        Canvas canvas = new Canvas(result);
+        Paint paint = new Paint();
+        
+        // 增强对比度的颜色矩阵
+        ColorMatrix cm = new ColorMatrix(new float[] {
+            2.0f, 0, 0, 0, -128,
+            0, 2.0f, 0, 0, -128,
+            0, 0, 2.0f, 0, -128,
+            0, 0, 0, 1, 0
+        });
+        
+        paint.setColorFilter(new ColorMatrixColorFilter(cm));
+        canvas.drawBitmap(bitmap, 0, 0, paint);
+        return result;
+    }
+
+    // 降噪处理（中值滤波）
+    private static Bitmap denoise(Bitmap bitmap) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+        
+        int[] result = new int[width * height];
+        for(int i = 1; i < height - 1; i++) {
+            for(int j = 1; j < width - 1; j++) {
+                // 3x3 邻域中值滤波
+                int[] window = new int[9];
+                int idx = 0;
+                for(int k = -1; k <= 1; k++) {
+                    for(int l = -1; l <= 1; l++) {
+                        window[idx++] = pixels[(i + k) * width + j + l] & 0xff;
+                    }
+                }
+                Arrays.sort(window);
+                result[i * width + j] = window[4] | (window[4] << 8) | (window[4] << 16) | 0xff000000;
+            }
+        }
+        
+        Bitmap resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        resultBitmap.setPixels(result, 0, width, 0, 0, width, height);
+        return resultBitmap;
+    }
+
+    // 自适应二值化
+    private static Bitmap binarization(Bitmap bitmap) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int[] pixels = new int[width * height];
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
+        
+        int[] result = new int[width * height];
+        int blockSize = 15; // 局部区域大小
+        int c = 5; // 常数C，用于调整阈值
+        
+        for(int i = 0; i < height; i++) {
+            for(int j = 0; j < width; j++) {
+                // 计算局部区域平均值
+                int sum = 0;
+                int count = 0;
+                for(int m = Math.max(0, i - blockSize/2); 
+                    m < Math.min(height, i + blockSize/2); m++) {
+                    for(int n = Math.max(0, j - blockSize/2); 
+                        n < Math.min(width, j + blockSize/2); n++) {
+                        sum += pixels[m * width + n] & 0xff;
+                        count++;
+                    }
+                }
+                int threshold = (sum / count) - c;
+                
+                // 二值化
+                int pixel = pixels[i * width + j] & 0xff;
+                result[i * width + j] = (pixel > threshold) ? 
+                    0xffffffff : 0xff000000;
+            }
+        }
+        
+        Bitmap resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        resultBitmap.setPixels(result, 0, width, 0, 0, width, height);
+        return resultBitmap;
     }
 }
