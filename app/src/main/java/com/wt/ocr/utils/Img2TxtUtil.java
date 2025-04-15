@@ -145,7 +145,7 @@ public class Img2TxtUtil {
             String curString = img2Text(image);
             int curSimilarity = Utils.fuzzyFindString(compareList, curString);
             String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
-            boolean isSensitive = curSimilarity > 90;
+            boolean isSensitive = curSimilarity > 70 || hasSensitiveRegex(curString);
     
             // 创建新的记录并存入数据库
             ScannedImage scannedImage = new ScannedImage(
@@ -247,7 +247,7 @@ public class Img2TxtUtil {
                 if (ocrSuccess) {
                     maxSimilarity = Utils.fuzzyFindString(compareList, text);
                     topKeyword = Utils.fuzzyFindStringShow(compareList, text);
-                    markedSensitive = maxSimilarity > 90;
+                    markedSensitive = maxSimilarity > 70 || hasSensitiveRegex(text);
                 }
             } catch (Exception e) {
                 error = e.getMessage();
@@ -283,6 +283,84 @@ public class Img2TxtUtil {
     // 保持原来无参数的方法，以保持向后兼容性
     public static void TestAnalyzeAlbum() {
         TestAnalyzeAlbum(null);
+    }
+
+    private static boolean hasSensitiveRegex(String text) {
+        // 检测文本中是否包含敏感信息
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+
+        // 清理文本，只保留大写字母、数字和空格
+        String cleanedText = text.replaceAll("[^A-Z0-9\\s]", " ").trim();
+
+        // 检测银行卡号（连续的13-19位数字）
+        String[] words = cleanedText.split("\\s+");
+        for (String word : words) {
+            // 银行卡号通常是13-19位数字
+            if (word.matches("\\d{13,19}")) {
+                return true;
+            }
+
+            // 检测可能被空格分隔的银行卡号
+            if (word.matches("\\d{4,6}") && cleanedText.contains(word)) {
+                String surroundingText = cleanedText.substring(
+                        Math.max(0, cleanedText.indexOf(word) - 30),
+                        Math.min(cleanedText.length(), cleanedText.indexOf(word) + word.length() + 30)
+                );
+
+                // 计算这个区域内的数字总数
+                int digitCount = 0;
+                for (char c : surroundingText.toCharArray()) {
+                    if (Character.isDigit(c)) {
+                        digitCount++;
+                    }
+                }
+
+                // 如果数字总数在银行卡号范围内
+                if (digitCount >= 13 && digitCount <= 19) {
+                    return true;
+                }
+            }
+        }
+
+        // 检测电话号码（放宽范围：连续的7-15位数字）
+        for (String word : words) {
+            if (word.matches("\\d{7,15}")) {
+                return true;
+            }
+        }
+
+        // 检测姓名+地址组合（注意：text只有大写字母）
+        // 查找可能的姓名（连续2-3个单词）
+        List<String> possibleNames = new ArrayList<>();
+        for (int i = 0; i < words.length - 1; i++) {
+            if (words[i].length() > 0 && words[i].matches("[A-Z]+")) {
+                if (i + 1 < words.length && words[i + 1].length() > 0 && words[i + 1].matches("[A-Z]+")) {
+                    possibleNames.add(words[i] + " " + words[i + 1]);
+
+                    // 检查是否有第三个单词作为姓名的一部分
+                    if (i + 2 < words.length && words[i + 2].length() > 0 && words[i + 2].matches("[A-Z]+")) {
+                        possibleNames.add(words[i] + " " + words[i + 1] + " " + words[i + 2]);
+                    }
+                }
+            }
+        }
+
+        // 对于每个可能的姓名，检查其后是否跟随地址信息
+        for (String name : possibleNames) {
+            int nameIndex = cleanedText.indexOf(name);
+            if (nameIndex >= 0) {
+                // 获取姓名后的文本
+                String afterName = cleanedText.substring(nameIndex + name.length());
+                // 检查是否包含数字（可能是门牌号）和多个单词（可能是街道名称）
+                if (afterName.matches(".*\\d+.*") && afterName.split("\\s+").length >= 3) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public static void writeResultsToCSV(List<ResultRecord> records, Context context) {
@@ -334,13 +412,13 @@ public class Img2TxtUtil {
         baseApi.init(LANGUAGE_PATH, LANGUAGE);
         
         // 设置页面分割模式
-        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK);
+        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_AUTO);
         
         // 设置OCR引擎模式
         baseApi.setVariable("tessedit_ocr_engine_mode", "1");  // 1 = 神经网络LSTM模式
         
         // 设置白名单字符（如果你知道图片中只会出现特定字符）
-        baseApi.setVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+        // baseApi.setVariable("tessedit_char_whitelist", "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
         
         // 其他可能的优化参数
         baseApi.setVariable("debug_file", "/dev/null");  // 禁用调试输出
