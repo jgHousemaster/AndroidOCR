@@ -425,7 +425,7 @@ public class Img2TxtUtil {
         baseApi.setVariable("tessdata_dir", LANGUAGE_PATH);
     }
 
-    private static String img2Text(String path) {
+    public static String img2Text(String path) {
         // 1. 加载并调整图片大小（过大或过小的图片都会影响识别）
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = 1; // 可以根据图片大小动态调整

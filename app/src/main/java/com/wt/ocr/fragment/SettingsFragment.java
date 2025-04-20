@@ -1,9 +1,13 @@
 package com.wt.ocr.fragment;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,18 +18,21 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.loader.content.CursorLoader;
 
 import com.wt.ocr.R;
 import com.wt.ocr.data.DatabaseHelper;
 import com.wt.ocr.data.ScannedImageDAO;
 import com.wt.ocr.utils.Img2TxtUtil;
+import android.app.Activity;
 
 public class SettingsFragment extends Fragment {
 
     private TextView longTextView;
     private Button clearDatabaseButton;
     private Button testButton;
-
+    private Button singleTestButton;
+    private TextView singleTestResult;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -33,13 +40,16 @@ public class SettingsFragment extends Fragment {
         
         // 获取长文本视图
         longTextView = view.findViewById(R.id.longTextView);
+        singleTestResult = view.findViewById(R.id.singleTestResult);
         
         // 获取清空数据库按钮，测试按钮
         clearDatabaseButton = view.findViewById(R.id.clearDatabaseButton);
         testButton = view.findViewById(R.id.testButton);
+        singleTestButton = view.findViewById(R.id.singleTestButton);
         // 设置按钮点击事件
         clearDatabaseButton.setOnClickListener(v -> clearDatabase());
         testButton.setOnClickListener(v -> testAnalyzeAlbum());
+        singleTestButton.setOnClickListener(v -> singleTest());
         return view;
     }
     
@@ -100,5 +110,50 @@ public class SettingsFragment extends Fragment {
                 }
             });
         }).start();
+    }
+
+    private void singleTest() {
+        // 创建Intent来打开图片选择器
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        startActivityForResult(intent, 1001); // 1001是请求码，用于在onActivityResult中识别请求
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001 && resultCode == Activity.RESULT_OK && data != null) {
+            Uri selectedImageUri = data.getData();
+            if (selectedImageUri != null) {
+                try {
+                    // 获取图片的实际路径
+                    String imagePath = getRealPathFromURI(selectedImageUri);
+                    if (imagePath != null) {
+                        String result = Img2TxtUtil.img2Text(imagePath);
+                        Toast.makeText(getContext(), result, Toast.LENGTH_SHORT).show();
+                        singleTestResult.setText(result);
+                    } else {
+                        Toast.makeText(getContext(), "无法获取图片路径", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(getContext(), "分析图片时出错: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+    
+    // 从URI获取实际文件路径的辅助方法
+    private String getRealPathFromURI(Uri contentUri) {
+        String[] proj = {MediaStore.Images.Media.DATA};
+        CursorLoader loader = new CursorLoader(getContext(), contentUri, proj, null, null, null);
+        Cursor cursor = loader.loadInBackground();
+        if (cursor != null) {
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            String result = cursor.getString(column_index);
+            cursor.close();
+            return result;
+        }
+        return null;
     }
 } 
