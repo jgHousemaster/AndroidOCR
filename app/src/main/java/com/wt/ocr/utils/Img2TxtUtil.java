@@ -75,8 +75,9 @@ public class Img2TxtUtil {
     public static Map<String, Object> AnalyzeImage(String path) {
         Map<String, Object> result = new HashMap<>();
         String curString = img2Text(path);
-        int curSimilarity = Utils.fuzzyFindString(compareList, curString);
-        String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
+        Map<String, Object> fuzzyResult = Utils.newFuzzyMatch(compareList, curString);
+        int curSimilarity = (int) fuzzyResult.get("maxSimilarity");
+        String sensiWordResult = (String) fuzzyResult.get("resultText") + ": " + curSimilarity;
         boolean isSensitive = curSimilarity > 90;
         result.put("resultText", curString);
         result.put("sensiWordResult", sensiWordResult);
@@ -110,15 +111,16 @@ public class Img2TxtUtil {
         // 处理未扫描的图片
         for (String image : unscannedImages) {
             String curString = img2Text(image);
-            int curSimilarity = Utils.fuzzyFindString(compareList, curString);
-            String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
+            Map<String, Object> fuzzyResult = Utils.newFuzzyMatch(compareList, curString);
+            int curSimilarity = (int) fuzzyResult.get("maxSimilarity");
+            String sensiWordResult = (String) fuzzyResult.get("resultText") + ": " + curSimilarity;
             boolean isSensitive = curSimilarity > 90;
 
             // 放入结果
             if (isSensitive) {
                 alertNeeded = true;
                 sensitiveImageURLs.add(image);
-                String keyword = sensiWordResult.split(":")[0];
+                String keyword = (String) fuzzyResult.get("resultText");
                 keywords.add(keyword);
             }
     
@@ -160,8 +162,9 @@ public class Img2TxtUtil {
         // 处理未扫描的图片
         for (String image : unscannedImages) {
             String curString = img2Text(image);
-            int curSimilarity = Utils.fuzzyFindString(compareList, curString);
-            String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
+            Map<String, Object> fuzzyResult = Utils.newFuzzyMatch(compareList, curString);
+            int curSimilarity = (int) fuzzyResult.get("maxSimilarity");
+            String sensiWordResult = (String) fuzzyResult.get("resultText") + ": " + curSimilarity;
             boolean isSensitive = curSimilarity > 70 || hasSensitiveRegex(curString);
     
             // 创建新的记录并存入数据库
@@ -262,8 +265,9 @@ public class Img2TxtUtil {
                 ocrSuccess = text != null && !text.trim().isEmpty();
 
                 if (ocrSuccess) {
-                    maxSimilarity = Utils.fuzzyFindString(compareList, text);
-                    topKeyword = Utils.fuzzyFindStringShow(compareList, text);
+                    Map<String, Object> fuzzyResult = Utils.newFuzzyMatch(compareList, text);
+                    maxSimilarity = (int) fuzzyResult.get("maxSimilarity");
+                    topKeyword = (String) fuzzyResult.get("resultText");
                     markedSensitive = hasSensitiveRegex(text);
                 }
             } catch (Exception e) {

@@ -28,6 +28,8 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import me.xdrop.fuzzywuzzy.FuzzySearch;
 
@@ -73,6 +75,31 @@ public class Utils {
         // 将ArrayList转换为数组
         String[] linesArray = lines.toArray(new String[0]);
         return linesArray;
+    }
+
+    public static Map<String, Object> newFuzzyMatch(String[] list, String str) {
+        Map<String, Object> result = new HashMap<>();
+        int maxSimilarity = 0;
+        String bestMatch = "";
+        for (String keyword : list) {
+            int curSimilarity = FuzzySearch.partialRatio(str, keyword);
+            if (curSimilarity > maxSimilarity) {
+                maxSimilarity = curSimilarity;
+                bestMatch = keyword;
+            }
+        }
+
+        if (!str.equals(bestMatch)) {
+            // OCR 的结果可以完全匹配 list 中的某个词
+            if (bestMatch.contains(str)) {
+                // OCR 的结果是 list 中的某个词的一部分又不完全一致，大概率是误判，舍弃结果
+                maxSimilarity = 0;
+            }
+        }
+
+        result.put("resultText", bestMatch);
+        result.put("maxSimilarity", maxSimilarity);
+        return result;
     }
 
     // 传入字符串和字符串数组，查找是否有匹配（返回最大匹配词及其匹配度）
