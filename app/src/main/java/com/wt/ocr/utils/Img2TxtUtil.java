@@ -451,7 +451,7 @@ public class Img2TxtUtil {
 
             // 1. 加载并调整图片大小
             BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = 2; // 降低图片分辨率，减少内存使用
+            options.inSampleSize = 1; // 根据图片大小动态调整，1表示不缩放
             originalBitmap = BitmapFactory.decodeFile(path, options);
             
             if (originalBitmap == null) {
@@ -478,127 +478,13 @@ public class Img2TxtUtil {
             }
         }
         
-        // 保留原有的注释
-        // 2. 图像预处理管道
-        // Bitmap processedBitmap = originalBitmap;
-        // processedBitmap = convertGray(processedBitmap);     // 灰度化
-        // processedBitmap = adjustContrast(processedBitmap);  // 对比度增强
-        // processedBitmap = denoise(processedBitmap);         // 降噪
-        // processedBitmap = binarization(processedBitmap);    // 二值化
-        
-        // 3. OCR识别
-        // baseApi.setImage(processedBitmap);
-        // String result = baseApi.getUTF8Text();
-        
-        // 4. 释放资源
-        // processedBitmap.recycle();
-        
-        // 5. 文本后处理
-        // result = result.replaceAll("\\s+", " ");
-        // result = result.trim();
-        // result = result.replaceAll("[^a-zA-Z0-9 ]", "");
-        // result = result.toUpperCase();
+        // 文本后处理
+        resultText = resultText.replaceAll("\\s+", " ");
+        resultText = resultText.trim();
+        resultText = resultText.replaceAll("[^a-zA-Z0-9 ]", "");
+        resultText = resultText.toUpperCase();
         
         return resultText;
     }
 
-    private static Bitmap convertGray(Bitmap bitmap3) {
-        colorMatrix = new ColorMatrix();
-        colorMatrix.setSaturation(0);
-        ColorMatrixColorFilter filter = new ColorMatrixColorFilter(colorMatrix);
-
-        Paint paint = new Paint();
-        paint.setColorFilter(filter);
-        Bitmap result = Bitmap.createBitmap(bitmap3.getWidth(), bitmap3.getHeight(), 
-                Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(result);
-
-        canvas.drawBitmap(bitmap3, 0, 0, paint);
-        return result;
-    }
-
-    // 对比度增强
-    private static Bitmap adjustContrast(Bitmap bitmap) {
-        Bitmap result = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), bitmap.getConfig());
-        Canvas canvas = new Canvas(result);
-        Paint paint = new Paint();
-        
-        // 增强对比度的颜色矩阵
-        ColorMatrix cm = new ColorMatrix(new float[] {
-            2.0f, 0, 0, 0, -128,
-            0, 2.0f, 0, 0, -128,
-            0, 0, 2.0f, 0, -128,
-            0, 0, 0, 1, 0
-        });
-        
-        paint.setColorFilter(new ColorMatrixColorFilter(cm));
-        canvas.drawBitmap(bitmap, 0, 0, paint);
-        return result;
-    }
-
-    // 降噪处理（中值滤波）
-    private static Bitmap denoise(Bitmap bitmap) {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        int[] pixels = new int[width * height];
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
-        
-        int[] result = new int[width * height];
-        for(int i = 1; i < height - 1; i++) {
-            for(int j = 1; j < width - 1; j++) {
-                // 3x3 邻域中值滤波
-                int[] window = new int[9];
-                int idx = 0;
-                for(int k = -1; k <= 1; k++) {
-                    for(int l = -1; l <= 1; l++) {
-                        window[idx++] = pixels[(i + k) * width + j + l] & 0xff;
-                    }
-                }
-                Arrays.sort(window);
-                result[i * width + j] = window[4] | (window[4] << 8) | (window[4] << 16) | 0xff000000;
-            }
-        }
-        
-        Bitmap resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        resultBitmap.setPixels(result, 0, width, 0, 0, width, height);
-        return resultBitmap;
-    }
-
-    // 自适应二值化
-    private static Bitmap binarization(Bitmap bitmap) {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        int[] pixels = new int[width * height];
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height);
-        
-        int[] result = new int[width * height];
-        int blockSize = 15; // 局部区域大小
-        int c = 5; // 常数C，用于调整阈值
-        
-        for(int i = 0; i < height; i++) {
-            for(int j = 0; j < width; j++) {
-                // 计算局部区域平均值
-                int sum = 0;
-                int count = 0;
-                for(int m = Math.max(0, i - blockSize/2); 
-                    m < Math.min(height, i + blockSize/2); m++) {
-                    for(int n = Math.max(0, j - blockSize/2); 
-                        n < Math.min(width, j + blockSize/2); n++) {
-                        sum += pixels[m * width + n] & 0xff;
-                        count++;
-                    }
-                }
-                int threshold = (sum / count) - c;
-                
-                // 二值化
-                int pixel = pixels[i * width + j] & 0xff;
-                result[i * width + j] = (pixel > threshold) ? 
-                    0xffffffff : 0xff000000;
-            }
-        }
-        
-        Bitmap resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        resultBitmap.setPixels(result, 0, width, 0, 0, width, height);
-        return resultBitmap;
-    }
 }
