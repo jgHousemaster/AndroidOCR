@@ -12,10 +12,20 @@ import android.graphics.Paint;
 import android.os.Environment;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.googlecode.tesseract.android.TessBaseAPI;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.google.android.gms.tasks.Tasks;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,11 +39,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import com.wt.ocr.data.DatabaseHelper;
 import com.wt.ocr.data.ScannedImage;
 import com.wt.ocr.data.ScannedImageDAO;
 import com.wt.ocr.data.ResultRecord;
+
+import android.os.Handler;
+import android.os.Looper;
+
 public class Img2TxtUtil {
     private static final int REQUEST_CODE_MEDIA_PERMISSION = 101;
     private static ColorMatrix colorMatrix;
@@ -426,33 +442,64 @@ public class Img2TxtUtil {
     }
 
     public static String img2Text(String path) {
-        // 1. 加载并调整图片大小（过大或过小的图片都会影响识别）
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inSampleSize = 1; // 可以根据图片大小动态调整
-        Bitmap originalBitmap = BitmapFactory.decodeFile(path, options);
+        String resultText = "";
+        TextRecognizer recognizer = null;
+        Bitmap originalBitmap = null;
         
+        try {
+            recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
+            // 1. 加载并调整图片大小
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inSampleSize = 2; // 降低图片分辨率，减少内存使用
+            originalBitmap = BitmapFactory.decodeFile(path, options);
+            
+            if (originalBitmap == null) {
+                return "无法加载图片";
+            }
+
+            InputImage image = InputImage.fromBitmap(originalBitmap, 0);
+            
+            // 使用同步方式处理图片，但有超时限制
+            try {
+                // 转换为同步调用，设置10秒超时
+                Text visionText = Tasks.await(recognizer.process(image), 10, TimeUnit.SECONDS);
+                resultText = visionText.getText();
+            } catch (Exception e) {
+                resultText = "识别失败: " + e.getMessage();
+            }
+        } finally {
+            // 确保资源释放
+            if (originalBitmap != null && !originalBitmap.isRecycled()) {
+                originalBitmap.recycle();
+            }
+            if (recognizer != null) {
+                recognizer.close();
+            }
+        }
+        
+        // 保留原有的注释
         // 2. 图像预处理管道
-        Bitmap processedBitmap = originalBitmap;
-        processedBitmap = convertGray(processedBitmap);     // 灰度化
-        processedBitmap = adjustContrast(processedBitmap);  // 对比度增强
-        processedBitmap = denoise(processedBitmap);         // 降噪
-        processedBitmap = binarization(processedBitmap);    // 二值化
+        // Bitmap processedBitmap = originalBitmap;
+        // processedBitmap = convertGray(processedBitmap);     // 灰度化
+        // processedBitmap = adjustContrast(processedBitmap);  // 对比度增强
+        // processedBitmap = denoise(processedBitmap);         // 降噪
+        // processedBitmap = binarization(processedBitmap);    // 二值化
         
         // 3. OCR识别
-        baseApi.setImage(processedBitmap);
-        String result = baseApi.getUTF8Text();
+        // baseApi.setImage(processedBitmap);
+        // String result = baseApi.getUTF8Text();
         
         // 4. 释放资源
-        processedBitmap.recycle();
-        originalBitmap.recycle();
+        // processedBitmap.recycle();
         
         // 5. 文本后处理
-        result = result.replaceAll("\\s+", " ");
-        result = result.trim();
-        result = result.replaceAll("[^a-zA-Z0-9 ]", "");
-        result = result.toUpperCase();
+        // result = result.replaceAll("\\s+", " ");
+        // result = result.trim();
+        // result = result.replaceAll("[^a-zA-Z0-9 ]", "");
+        // result = result.toUpperCase();
         
-        return result;
+        return resultText;
     }
 
     private static Bitmap convertGray(Bitmap bitmap3) {

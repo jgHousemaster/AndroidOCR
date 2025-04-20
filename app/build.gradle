@@ -64,6 +64,12 @@ dependencies {
 
     // Material Design
     implementation 'com.google.android.material:material:1.9.0'
+
+    // MLKit Text Recognition
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+
+    // On Device Machine Learnings
+    implementation "com.google.android.odml:image:1.0.0-beta1"
 }
 apply plugin: 'com.google.gms.google-services'
 

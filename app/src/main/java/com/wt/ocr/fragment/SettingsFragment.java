@@ -129,9 +129,27 @@ public class SettingsFragment extends Fragment {
                     // 获取图片的实际路径
                     String imagePath = getRealPathFromURI(selectedImageUri);
                     if (imagePath != null) {
-                        String result = Img2TxtUtil.img2Text(imagePath);
-                        Toast.makeText(getContext(), result, Toast.LENGTH_SHORT).show();
-                        singleTestResult.setText(result);
+                        
+                        // 在后台线程执行OCR操作
+                        new Thread(() -> {
+                            try {
+                                String result = Img2TxtUtil.img2Text(imagePath);
+                                // 在主线程更新UI
+                                getActivity().runOnUiThread(() -> {
+                                    if (getContext() != null) {
+                                        Toast.makeText(getContext(), result, Toast.LENGTH_SHORT).show();
+                                        singleTestResult.setText(result);
+                                    }
+                                });
+                            } catch (Exception e) {
+                                getActivity().runOnUiThread(() -> {
+                                    if (getContext() != null) {
+                                        Toast.makeText(getContext(), "分析图片时出错: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            }
+                        }).start();
+                        
                     } else {
                         Toast.makeText(getContext(), "无法获取图片路径", Toast.LENGTH_SHORT).show();
                     }
