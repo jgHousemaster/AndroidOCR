@@ -247,7 +247,7 @@ public class Img2TxtUtil {
                 if (ocrSuccess) {
                     maxSimilarity = Utils.fuzzyFindString(compareList, text);
                     topKeyword = Utils.fuzzyFindStringShow(compareList, text);
-                    markedSensitive = maxSimilarity > 70 || hasSensitiveRegex(text);
+                    markedSensitive = hasSensitiveRegex(text);
                 }
             } catch (Exception e) {
                 error = e.getMessage();

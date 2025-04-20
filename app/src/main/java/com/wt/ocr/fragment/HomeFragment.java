@@ -67,12 +67,12 @@ public class HomeFragment extends Fragment {
         scanButton.setOnClickListener(v -> startScan());
         
         // 自动检查新照片
-        new Thread(() -> {
-            Map<String, Object> analysisResult = Img2TxtUtil.AnalyzeAlbumNewPhotos();
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(() -> updateAutoCheckUI(analysisResult));
-            }
-        }).start();
+        // new Thread(() -> {
+        //     Map<String, Object> analysisResult = Img2TxtUtil.AnalyzeAlbumNewPhotos();
+        //     if (getActivity() != null) {
+        //         getActivity().runOnUiThread(() -> updateAutoCheckUI(analysisResult));
+        //     }
+        // }).start();
         
         return view;
     }
