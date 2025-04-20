@@ -81,7 +81,7 @@ public class Utils {
         String word = "";
         int cur;
         for (String s : list) {
-            cur = FuzzySearch.partialRatio(s, str);
+            cur = FuzzySearch.partialRatio(str, s);
             if (cur > result) {
                 result = cur;
                 word = s;
@@ -95,7 +95,7 @@ public class Utils {
         int result = 0;
         int cur;
         for (String s : list) {
-            cur = FuzzySearch.partialRatio(s, str);
+            cur = FuzzySearch.partialRatio(str, s);
             if (cur > result) {
                 result = cur;
             }

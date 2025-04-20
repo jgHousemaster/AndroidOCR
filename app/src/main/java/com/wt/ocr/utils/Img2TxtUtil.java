@@ -78,6 +78,7 @@ public class Img2TxtUtil {
         int curSimilarity = Utils.fuzzyFindString(compareList, curString);
         String sensiWordResult = Utils.fuzzyFindStringShow(compareList, curString);
         boolean isSensitive = curSimilarity > 90;
+        result.put("resultText", curString);
         result.put("sensiWordResult", sensiWordResult);
         result.put("isSensitive", isSensitive);
         return result;

@@ -26,6 +26,8 @@ import com.wt.ocr.data.ScannedImageDAO;
 import com.wt.ocr.utils.Img2TxtUtil;
 import android.app.Activity;
 
+import java.util.Map;
+
 public class SettingsFragment extends Fragment {
 
     private TextView longTextView;
@@ -133,12 +135,17 @@ public class SettingsFragment extends Fragment {
                         // 在后台线程执行OCR操作
                         new Thread(() -> {
                             try {
-                                String result = Img2TxtUtil.img2Text(imagePath);
+                                Map<String, Object> result = Img2TxtUtil.AnalyzeImage(imagePath);
+                                String resultText = (String) result.get("resultText");
+                                String sensiWordResult = (String) result.get("sensiWordResult");
+                                boolean isSensitive = (boolean) result.get("isSensitive");
+                                String result_text =
+                                        resultText + "\n" + sensiWordResult + "\n" + isSensitive;
                                 // 在主线程更新UI
                                 getActivity().runOnUiThread(() -> {
                                     if (getContext() != null) {
-                                        Toast.makeText(getContext(), result, Toast.LENGTH_SHORT).show();
-                                        singleTestResult.setText(result);
+                                        Toast.makeText(getContext(), "OCR Success", Toast.LENGTH_SHORT).show();
+                                        singleTestResult.setText(result_text);
                                     }
                                 });
                             } catch (Exception e) {
