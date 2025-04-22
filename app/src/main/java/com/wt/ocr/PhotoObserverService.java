@@ -61,7 +61,7 @@ public class PhotoObserverService extends Service {
                         if (imagePath != null) {
                             Map<String, Object> result = Img2TxtUtil.AnalyzeImage(imagePath);
                             if ((boolean)result.get("isSensitive")) {
-                                showNotification(result);
+                                showNotification();
                             }
                         } else {
                             Log.e("PhotoObserverService", "Image path is null");
@@ -79,17 +79,17 @@ public class PhotoObserverService extends Service {
     }
 
 
-    private void showNotification(Map<String, Object> result) {
+    private void showNotification() {
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("ALERT: THe photo you just took might be sensitive")
+                .setContentTitle("ALERT: The photo you just took with Sullivan+ might be sensitive")
                 .setContentText("Tap to view details")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setPriority(Notification.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setCategory(Notification.CATEGORY_ERROR)
                 .setColorized(true)
-                .setColor(Color.RED)
+                .setColor(Color.parseColor("#FF876A"))
                 .setDefaults(Notification.DEFAULT_ALL)
                 .build();
         notificationManager.notify(1, notification);

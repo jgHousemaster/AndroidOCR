@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">文字识别</string>
+    <string name="app_name">PrivLens</string>
     <string name="settings_long_text">This app is built to help people with vision impairment protect their privacy when using AI-powered assistant tools.\nApps like Sullivan+ can describe what\'s in front of you by sending photos to cloud-based AI models, but they may also upload private information in the process.\nThis app runs entirely offline and automatically scans your photo gallery using OCR. If it detects sensitive content in a photo, it will notify you before the image is shared elsewhere, helping you stay informed and in control.</string>
 </resources>

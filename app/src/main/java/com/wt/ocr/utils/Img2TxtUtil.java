@@ -78,7 +78,7 @@ public class Img2TxtUtil {
         Map<String, Object> fuzzyResult = Utils.newFuzzyMatch(compareList, curString);
         int curSimilarity = (int) fuzzyResult.get("maxSimilarity");
         String sensiWordResult = (String) fuzzyResult.get("resultText") + ": " + curSimilarity;
-        boolean isSensitive = curSimilarity > 90;
+        boolean isSensitive = curSimilarity > 90 || hasSensitiveRegex(curString);
         result.put("resultText", curString);
         result.put("sensiWordResult", sensiWordResult);
         result.put("isSensitive", isSensitive);
@@ -114,7 +114,7 @@ public class Img2TxtUtil {
             Map<String, Object> fuzzyResult = Utils.newFuzzyMatch(compareList, curString);
             int curSimilarity = (int) fuzzyResult.get("maxSimilarity");
             String sensiWordResult = (String) fuzzyResult.get("resultText") + ": " + curSimilarity;
-            boolean isSensitive = curSimilarity > 90;
+            boolean isSensitive = curSimilarity > 90 || hasSensitiveRegex(curString);
 
             // 放入结果
             if (isSensitive) {

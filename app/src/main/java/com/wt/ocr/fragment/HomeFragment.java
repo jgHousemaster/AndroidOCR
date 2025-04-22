@@ -3,6 +3,7 @@ package com.wt.ocr.fragment;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,13 +30,16 @@ import com.wt.ocr.utils.Utils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class HomeFragment extends Fragment {
 
     private ScanResultAdapter adapter;
     private LinearLayout problematicPhotosContainer;
+    private LinearLayout newProblematicPhotosContainer;
     private LinearLayout resultsContainer;
     private LinearLayout autoCheckResultsContainer;
     private TextView autoCheckTextView;
@@ -51,6 +55,7 @@ public class HomeFragment extends Fragment {
         // 初始化视图
         resultsContainer = view.findViewById(R.id.resultsContainer);
         problematicPhotosContainer = view.findViewById(R.id.problematicPhotosContainer);
+        newProblematicPhotosContainer = view.findViewById(R.id.newProblematicPhotosContainer);
         autoCheckResultsContainer = view.findViewById(R.id.autoCheckResultsContainer);
         autoCheckTextView = view.findViewById(R.id.autoCheckTextView);
         checkMark = view.findViewById(R.id.checkMark);
@@ -67,17 +72,18 @@ public class HomeFragment extends Fragment {
         scanButton.setOnClickListener(v -> startScan());
         
         // 自动检查新照片
-        // new Thread(() -> {
-        //     Map<String, Object> analysisResult = Img2TxtUtil.AnalyzeAlbumNewPhotos();
-        //     if (getActivity() != null) {
-        //         getActivity().runOnUiThread(() -> updateAutoCheckUI(analysisResult));
-        //     }
-        // }).start();
+        new Thread(() -> {
+            Map<String, Object> analysisResult = Img2TxtUtil.AnalyzeAlbumNewPhotos();
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(() -> updateAutoCheckUI(analysisResult));
+            }
+        }).start();
         
         return view;
     }
     
     private void startScan() {
+        // 扫描所有照片
         Toast.makeText(getContext(), "run scanning...", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
             Map<String, Object> analysisResult = Img2TxtUtil.AnalyzeAlbum();
@@ -88,6 +94,8 @@ public class HomeFragment extends Fragment {
     }
     
     private void updateUI(Map<String, Object> result) {
+        // 点击扫描按钮后，显示扫描结果
+
         resultsContainer.setVisibility(View.VISIBLE);
         
         // 更新扫描结果
@@ -108,7 +116,17 @@ public class HomeFragment extends Fragment {
         boolean hasNewSensitivePhotos = result.containsKey("alertNeeded") && (Boolean) result.get("alertNeeded");
         
         if (hasNewSensitivePhotos) {
-            autoCheckTextView.setText("Potential sensitive photos detected since last scan, KEY WORDS: " + result.get("sensitiveWords"));
+            // 正确处理keywords ArrayList
+            ArrayList<String> keywordsList = (ArrayList<String>) result.get("keywords");
+            String keywordsString = "";
+            // 对关键词列表进行去重处理
+            if (keywordsList != null && !keywordsList.isEmpty()) {
+                Set<String> uniqueKeywords = new HashSet<>(keywordsList);
+                keywordsList = new ArrayList<>(uniqueKeywords);
+                keywordsString = TextUtils.join(", ", keywordsList);
+            }
+            
+            autoCheckTextView.setText("Potential sensitive photos detected since last scan, KEY WORDS: " + keywordsString);
             eyeMark.setVisibility(View.VISIBLE);
             checkMark.setVisibility(View.GONE);
             
@@ -117,7 +135,7 @@ public class HomeFragment extends Fragment {
                 ArrayList<String> sensitiveImages = (ArrayList<String>) result.get("sensitiveImageURLs");
                 if (sensitiveImages != null && !sensitiveImages.isEmpty()) {
                     autoCheckResultsContainer.setVisibility(View.VISIBLE);
-                    showProblematicPhotos(sensitiveImages);
+                    showNewProblematicPhotos(sensitiveImages);
                 }
             }
         } else {
@@ -127,6 +145,28 @@ public class HomeFragment extends Fragment {
             autoCheckResultsContainer.setVisibility(View.GONE);
         }
     }
+
+    private void showNewProblematicPhotos(List<String> photoUrls) {
+        newProblematicPhotosContainer.removeAllViews();
+        for (String url : photoUrls) {
+            ImageView imageView = new ImageView(getContext());
+            imageView.setLayoutParams(new LinearLayout.LayoutParams(
+                    dpToPx(100), dpToPx(100)));
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setPadding(dpToPx(4), 0, dpToPx(4), 0);
+            
+            // 使用 Glide 加载本地文件
+            File imageFile = new File(url);
+            Glide.with(this)
+                    .load(imageFile)
+                    .into(imageView);
+            
+            // 点击直接打开相册
+            imageView.setOnClickListener(v -> openImageInGallery(url));
+            newProblematicPhotosContainer.addView(imageView);
+        }
+    }
+    
     
     private void showProblematicPhotos(List<String> photoUrls) {
         problematicPhotosContainer.removeAllViews();

@@ -16,15 +16,29 @@
             android:layout_marginBottom="16dp">
 
             <TextView
+                android:id="@+id/appTitleTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Photo Privacy Scanner"
-                android:textSize="24sp"
+                android:text="PriveLens"
+                android:textSize="28sp"
                 android:textStyle="bold"
                 android:contentDescription="App Title"
                 android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"/>
+                android:layout_alignParentTop="true"/>
+
+            <TextView
+                android:id="@+id/subtitleTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Built for Sullivan+"
+                android:textSize="16sp"
+                android:textStyle="italic"
+                android:contentDescription="Subtitle"
+                android:layout_below="@id/appTitleTextView"
+                android:layout_alignParentStart="true"/>
         </RelativeLayout>
+
+        
 
         <TextView
             android:id="@+id/autoCheckTextView"
@@ -49,7 +63,7 @@
             android:layout_height="120dp"
             android:layout_gravity="center"
             android:layout_marginBottom="16dp"
-            android:src="@drawable/eye"
+            android:src="@drawable/warningshield"
             android:visibility="gone"
             android:contentDescription="eye icon"/>
 
@@ -63,7 +77,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Sensitive Photos"
+                android:text="New Potential Sensitive Photos"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp"
@@ -75,7 +89,7 @@
                 android:layout_marginBottom="24dp">
 
                 <LinearLayout
-                    android:id="@+id/autoCheckPhotosContainer"
+                    android:id="@+id/newProblematicPhotosContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"/>
@@ -85,7 +99,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Press the button below to check on all the photos in the selected album."
+            android:text="Press the button below to scan all the photos took with Sullivan+."
             android:textSize="16sp"
             android:layout_marginBottom="16dp"/>
 
@@ -111,7 +125,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Problematic Photos"
+                android:text="Potential Sensitive Photos"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp"
